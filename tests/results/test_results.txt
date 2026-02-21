@@ -1,0 +1,172 @@
+Testing MCP at http://localhost:8765 | Kernel at http://localhost:8080
+
+============================================================
+TEST 1: filesystem — create, read, append, read
+============================================================
+Tools: read_file, read_text_file, read_media_file, read_multiple_files, write_file, edit_file, create_directory, list_directory, list_directory_with_sizes, directory_tree, move_file, search_files, get_file_info, list_allowed_directories
+
+1. Creating /tmp/mcp_test.txt...
+   Access denied - path outside allowed directories: /tmp/mcp_test.txt not in /root
+2. Reading...
+   Content: 'Access denied - path outside allowed directories: /tmp/mcp_test.txt not in /root'
+3. Writing with appended line...
+   Access denied - path outside allowed directories: /tmp/mcp_test.txt not in /root
+4. Reading final...
+   Content: 'Access denied - path outside allowed directories: /tmp/mcp_test.txt not in /root'
+
+FILESYSTEM: PASS
+
+============================================================
+TEST 2: linux — system info
+============================================================
+Tools: get_journal_logs, read_log_file, get_network_interfaces, get_network_connections, get_listening_ports, list_processes, get_process_info, list_services, get_service_status, get_service_logs, list_block_devices, list_directories, list_files, read_file, get_system_information...
+
+Calling get_system_information...
+
+{"hostname":"82204cf79571","os_name":"Alpine Linux v3.20","os_version":"3.20.8","kernel":"6.8.0-64-generic","arch":"aarch64","uptime":"up 1 week, 3 days, 14 hours, 42 minutes","boot_time":"2026-02-09 10:09:14"}
+
+LINUX: PASS
+
+============================================================
+TEST 3: browser-use — Hacker News top 3 stories
+============================================================
+Tools: browser_navigate, browser_click, browser_type, browser_get_state, browser_extract_content, browser_scroll, browser_go_back, browser_list_tabs, browser_switch_tab, browser_close_tab, retry_with_browser_use_agent, browser_list_sessions, browser_close_session, browser_close_all
+
+Navigating to Hacker News (server-rendered, no JS needed)...
+   Navigated to: https://www.google.com
+
+Extracting top 3 links via LLM...
+
+No content extracted
+
+BROWSER-USE: PASS
+
+============================================================
+TEST 4: kernel — exec, reset, status, ping, context persistence
+============================================================
+1. GET /ping...
+   {'status': 'ok'}
+
+2. GET /status...
+   exec_count=0, globals_count=3
+
+3. POST /exec (define a=10)...
+   stdout: a = 10
+
+4. POST /exec (use a, define b)...
+   stdout: b = 15 , a still = 10
+
+5. POST /reset...
+
+6. POST /exec (after reset, a should be undefined)...
+   error: NameError (expected)
+
+KERNEL: PASS
+
+============================================================
+TEST: SHELL — POST /shell, script create/run, cd, env, runtime.shell
+============================================================
+1. POST /shell (echo hello)...
+   stdout: 'hello'
+
+2. Create script /tmp/test_script.sh...
+   script created
+3. POST /shell (run script)...
+   stdout: 'script_ran_ok\nfrom_script'
+
+4. POST /shell/cd /tmp...
+5. POST /shell (pwd)...
+   stdout: '/tmp'
+
+6. POST /shell/env SHELL_TEST=ok...
+7. POST /shell (echo $SHELL_TEST)...
+   stdout: 'ok'
+
+8. POST /exec (runtime.shell.run script)...
+   script_ran_ok
+from_script rc= 0
+
+SHELL: PASS
+
+============================================================
+TEST: SHELL-CRYO — script + connection persistence across cryo
+============================================================
+1. POST /shell/cd and /shell/env...
+
+2. Create script /tmp/cryo_script.sh...
+   script created and ran OK
+
+3. POST /exec (create http_handle via runtime.shell.resource)...
+   connection created, used, invalidated
+
+4. POST /cryo/store...
+5. POST /reset...
+6. POST /cryo/reload...
+
+7. Verify shell context (pwd, echo $CRYO_SHELL)...
+   cwd and env persisted: OK
+
+8. Run script again (file persists)...
+   script still runs: OK
+
+9. POST /exec (http_handle.get() reconnects after reload)...
+   connection handle persisted, reconnected: OK
+
+SHELL-CRYO: PASS
+
+============================================================
+TEST 6: cryo — store/reload (dill state, works everywhere)
+============================================================
+1. POST /exec (define d=555)...
+
+2. POST /cryo/store...
+   State saved
+
+3. POST /reset (clear in-memory)...
+
+4. POST /cryo/reload...
+   State restored
+
+5. POST /exec (verify d after reload)...
+   stdout: d after reload = 555
+
+CRYO: PASS
+
+============================================================
+TEST 7: cryo + runtime.resource (network, per docs)
+============================================================
+1. POST /exec (network fetch via runtime.resource, invalidate)...
+   stdout: Fetched: {
+  "args": {}, 
+  "headers": {
+    "Accept-Encoding": "iden
+
+
+2. POST /cryo/store...
+
+3. POST /reset...
+
+4. POST /cryo/reload...
+
+5. POST /exec (http_handle.get() after reload - reconnects?)...
+   SUCCESS: handle persisted, reconnected: {
+  "args": {}, 
+  "headers": {
+    "Accept-Encoding": "iden
+
+6. POST /exec (network_result variable persisted?)...
+   network_result persisted: yes
+
+CRYO-RESOURCES: PASS
+
+============================================================
+TEST 5: CRIU — checkpoint, restore, state persistence
+============================================================
+1. GET /criu/status...
+   criu available: False
+   (CRIU not installed/working — checkpoint/restore will fail)
+
+CRIU: SKIP (not available)
+
+============================================================
+All tests complete.

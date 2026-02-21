@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.memory/runs/
+.memory/chat_history.json
+.memory/restart_requested
+.memory/inbox/*
+!.memory/inbox/.gitkeep
+node_modules/
+.env

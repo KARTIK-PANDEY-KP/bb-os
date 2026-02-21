@@ -1,0 +1,38 @@
+[
+  {
+    "name": "exec_python",
+    "description": "Execute Python code in a persistent namespace (notebook semantics). Variables persist across calls. Use for computation, data processing, or anything Python can do. IMPORTANT: Never make network calls (HTTP, WebSocket, DB, SSH, etc.) with bare connections. Always wrap them with runtime.resource(factory) which returns a reconnectable handle that survives cryo store/reload. Pattern: handle = runtime.resource(lambda: create_connection(...)).teardown(lambda c: c.close()).retry(max_attempts=5) then use handle.get() to get the live connection. Call handle.invalidate() before cryo store. See /repo/docs/kernel.md for full API reference.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Python code to execute"
+        }
+      },
+      "required": ["code"]
+    }
+  },
+  {
+    "name": "run_shell",
+    "description": "Run a shell command. Working directory and environment variables persist across calls.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "Shell command to run"
+        }
+      },
+      "required": ["command"]
+    }
+  },
+  {
+    "name": "self_evolve",
+    "description": "Trigger self-evolve: rebuild the Docker image from /repo and restart the container. Use when you've made code changes that require a rebuild. The container will be replaced — this is a terminal action.",
+    "input_schema": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+]

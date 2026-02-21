@@ -1,0 +1,28 @@
+# Run OS stack with host volume mounts + VNC for browser access.
+# Build first: docker build -t os -f body/Dockerfile .
+#
+# macOS: open vnc://localhost:5900 in Finder (built-in Screen Sharing)
+# Linux: use any VNC client on :5900, or add X11 socket mount
+#
+# Run: HOST_HOME="$HOME" HOST_PWD="$PWD" docker compose -f body/docker-compose.yml up -d
+
+services:
+  os:
+    image: os
+    container_name: os-host
+    ports:
+      - "8765:8765"
+      - "8080:8080"
+      - "5900:5900"
+    volumes:
+      - ${HOST_HOME}/projects/docker_persistence:/root/host:rw
+      - ${HOST_HOME}/.mcp-state:/data:rw
+      - ${HOST_PWD}:/repo:rw
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      BROWSER_USE_HEADLESS: "false"
+      FILESYSTEM_ROOT: "/root"
+      HOST_HOME: ${HOST_HOME}
+      HOST_PWD: ${HOST_PWD}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
