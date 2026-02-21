@@ -71,22 +71,31 @@ async def _discover_mcp_tools() -> tuple[list[dict], dict[str, str]]:
     all_tools = []
     tool_server_map = {}
 
-    for server_name in MCP_SERVERS:
+    async def _discover_one(server_name: str):
         url = f"{MCP_BASE}/servers/{server_name}/sse"
+        async with sse_client(url) as (read, write):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                result = await session.list_tools()
+                tools = []
+                for tool in result.tools:
+                    raw_schema = tool.inputSchema if tool.inputSchema else {"type": "object", "properties": {}}
+                    schema = {
+                        "name": f"{server_name}__{tool.name}",
+                        "description": f"[{server_name}] {tool.description or tool.name}",
+                        "input_schema": _sanitize_schema(raw_schema),
+                    }
+                    tools.append(schema)
+                return tools
+
+    for server_name in MCP_SERVERS:
         try:
-            async with sse_client(url) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    result = await session.list_tools()
-                    for tool in result.tools:
-                        raw_schema = tool.inputSchema if tool.inputSchema else {"type": "object", "properties": {}}
-                        schema = {
-                            "name": f"{server_name}__{tool.name}",
-                            "description": f"[{server_name}] {tool.description or tool.name}",
-                            "input_schema": _sanitize_schema(raw_schema),
-                        }
-                        all_tools.append(schema)
-                        tool_server_map[schema["name"]] = server_name
+            tools = await asyncio.wait_for(_discover_one(server_name), timeout=15)
+            for schema in tools:
+                all_tools.append(schema)
+                tool_server_map[schema["name"]] = server_name
+        except asyncio.TimeoutError:
+            print(f"[agent] Warning: timeout connecting to {server_name}", file=sys.stderr)
         except Exception as e:
             print(f"[agent] Warning: could not connect to {server_name}: {e}", file=sys.stderr)
 
@@ -95,18 +104,20 @@ async def _discover_mcp_tools() -> tuple[list[dict], dict[str, str]]:
 
 async def _call_mcp_tool(server_name: str, tool_name: str, arguments: dict) -> str:
     """Call a tool on a specific MCP server."""
-    url = f"{MCP_BASE}/servers/{server_name}/sse"
-    async with sse_client(url) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-            result = await session.call_tool(tool_name, arguments)
-            parts = []
-            for content in result.content:
-                if hasattr(content, "text"):
-                    parts.append(content.text)
-                else:
-                    parts.append(str(content))
-            return "\n".join(parts) if parts else "(no output)"
+    async def _call():
+        url = f"{MCP_BASE}/servers/{server_name}/sse"
+        async with sse_client(url) as (read, write):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                result = await session.call_tool(tool_name, arguments)
+                parts = []
+                for content in result.content:
+                    if hasattr(content, "text"):
+                        parts.append(content.text)
+                    else:
+                        parts.append(str(content))
+                return "\n".join(parts) if parts else "(no output)"
+    return await asyncio.wait_for(_call(), timeout=60)
 
 
 async def _call_kernel_tool(name: str, arguments: dict) -> str:
