@@ -50,7 +50,7 @@ docker run -d --name "$CONTAINER_NAME" \
   -v "$PWD:/repo:rw" \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -e BROWSER_USE_HEADLESS=false \
-  -e FILESYSTEM_ROOT="/root" \
+  -e FILESYSTEM_ROOT="/" \
   -e HOST_HOME="$HOME" \
   -e HOST_PWD="$PWD" \
   -e OPENAI_API_KEY="${OPENAI_API_KEY:-}" \

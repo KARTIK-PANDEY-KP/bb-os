@@ -90,7 +90,7 @@ docker run -d --name "$RESTARTER_NAME" \
       -v "${HOST_PWD}:/repo:rw" \
       -v /var/run/docker.sock:/var/run/docker.sock \
       -e BROWSER_USE_HEADLESS=false \
-      -e FILESYSTEM_ROOT=/root \
+      -e FILESYSTEM_ROOT=/ \
       -e HOST_HOME="${HOST_HOME}" \
       -e HOST_PWD="${HOST_PWD}" \
       -e OPENAI_API_KEY="${OPENAI_API_KEY}" \

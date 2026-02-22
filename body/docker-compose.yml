@@ -21,7 +21,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       BROWSER_USE_HEADLESS: "false"
-      FILESYSTEM_ROOT: "/root"
+      FILESYSTEM_ROOT: "/"
       HOST_HOME: ${HOST_HOME}
       HOST_PWD: ${HOST_PWD}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
