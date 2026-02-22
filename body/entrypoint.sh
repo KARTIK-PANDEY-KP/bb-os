@@ -71,9 +71,17 @@ cd /repo/core && python criu_wrapper.py &
 KERNEL_PID=$!
 sleep 2
 
-# Start autonomous agent daemon in background
-echo "[entrypoint] Starting autonomous agent daemon..."
-python /repo/core/daemon.py &
+# Start autonomous agent daemon in background (optional: set DAEMON_ENABLED=false to turn off)
+DAEMON_ENABLED="${DAEMON_ENABLED:-true}"
+case "$DAEMON_ENABLED" in
+  0|false|no|off) DAEMON_ENABLED="";;
+esac
+if [ -n "$DAEMON_ENABLED" ]; then
+  echo "[entrypoint] Starting autonomous agent daemon..."
+  python /repo/core/daemon.py &
+else
+  echo "[entrypoint] Daemon disabled (set DAEMON_ENABLED=true to enable automatic run)"
+fi
 
 echo "[entrypoint] MCP Server on port $MCP_PORT | Kernel on port $KERNEL_PORT"
 echo "  DISPLAY=$DISPLAY | HEADLESS=$BROWSER_USE_HEADLESS"

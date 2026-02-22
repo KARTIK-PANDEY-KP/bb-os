@@ -55,6 +55,7 @@ docker run -d --name "$CONTAINER_NAME" \
   -e HOST_PWD="$PWD" \
   -e OPENAI_API_KEY="${OPENAI_API_KEY:-}" \
   -e ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}" \
+  -e DAEMON_ENABLED="${DAEMON_ENABLED:-}" \
   os
 
 # Wait for kernel to be ready

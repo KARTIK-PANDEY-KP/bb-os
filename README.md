@@ -46,7 +46,8 @@ maturity = (cycles / MATURITY_CYCLES) ^ GROWTH_CURVE
 ## Quick Start
 
 ```bash
-./scripts/run.sh                              # start
+./scripts/run.sh                              # start (daemon on by default)
+DAEMON_ENABLED=false ./scripts/run.sh         # start without autonomous daemon
 curl -X POST http://localhost:8080/chat -d '{"message": "hello"}'  # talk
 curl -X POST http://localhost:8080/digest     # trigger digest manually
 curl http://localhost:8080/digest/learnings   # read accumulated learnings
