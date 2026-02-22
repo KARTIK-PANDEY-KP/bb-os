@@ -4,6 +4,10 @@ __pycache__/
 *.egg-info/
 .memory/runs/
 .memory/chat_history.json
+.memory/tool_log.jsonl
+.memory/learnings.md
+.memory/digest_state.json
+.memory/daemon_state.json
 .memory/restart_requested
 .memory/inbox/*
 !.memory/inbox/.gitkeep

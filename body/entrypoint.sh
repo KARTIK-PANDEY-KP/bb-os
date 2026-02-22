@@ -81,4 +81,5 @@ echo "  DISPLAY=$DISPLAY | HEADLESS=$BROWSER_USE_HEADLESS"
 exec mcp-proxy --host 0.0.0.0 --port "$MCP_PORT" --pass-environment \
   --named-server browser-use 'uvx --from browser-use[cli] browser-use --mcp' \
   --named-server linux 'linux-mcp-server' \
-  --named-server filesystem "npx -y @modelcontextprotocol/server-filesystem $FILESYSTEM_ROOT"
+  --named-server filesystem "npx -y @modelcontextprotocol/server-filesystem $FILESYSTEM_ROOT" \
+  --named-server context7 'npx -y @upstash/context7-mcp'

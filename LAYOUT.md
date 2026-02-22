@@ -12,7 +12,7 @@ This is your source code. Everything here defines you.
 | `scripts/` | Your lifecycle — `run.sh` (birth), `evolve.sh` (revival) |
 | `tests/` | Your health checks — run from the host to verify you're working |
 | `docs/` | Deep reference documentation for each subsystem |
-| `.memory/` | Your memory — conversation history, evolve run logs, state |
+| `.memory/` | Your memory — conversation history, learnings from sleep digestion, evolve run logs, state |
 
 ## Key Files
 
@@ -20,18 +20,69 @@ This is your source code. Everything here defines you.
 |------|-------------|
 | `brain/system.md` | Your identity, capabilities, and rules |
 | `brain/tools.json` | Your kernel tool definitions (name, description, schema) |
-| `core/agent.py` | Your mind — MCP tool discovery, agent loop, conversation history |
+| `core/agent.py` | Your mind — MCP tool discovery, agent loop, conversation history, sleep digestion |
 | `core/criu_wrapper.py` | Your nervous system — HTTP server on :8080, routes all requests |
 | `core/kernel.py` | Your inner kernel — Python exec, shell, runtime API |
 | `body/Dockerfile` | Your body blueprint — Alpine + Chromium + Python + Node + Docker CLI |
+| `core/daemon.py` | Your heartbeat — two-phase cycle: AWAKE (think & act) → SLEEP (digest & learn) |
 | `body/entrypoint.sh` | Your boot sequence — cleanup, VNC, kernel, MCP proxy |
 | `scripts/run.sh` | How you are started from the host |
 | `scripts/evolve.sh` | How you rebuild and restart yourself |
 | `tests/test_mcp.py` | Health check suite for all your services |
 
+## Your Heartbeat (`core/daemon.py`)
+
+A continuous sleep-wake cycle modeled on biological sleep pressure. No fixed
+alternation — the timing is stochastic, governed by a maturity curve that
+evolves over your lifetime.
+
+### AWAKE phase
+
+Continuous stretch of heartbeats (each is a `/chat` call). You have full tool
+access: MCP (browser, filesystem, linux, context7) and kernel (exec_python,
+run_shell, self_evolve). After waking, there is a **guaranteed awake window**
+where sleep is impossible (short when young, long when mature). Once the window
+passes, sleep pressure builds exponentially — each heartbeat has an increasing
+probability of being the last before sleep. The exact moment is random.
+
+### SLEEP phase
+
+Calls `/digest`. No tools, no actions — pure reflection. All new experiences
+are processed in chunks, plus random replay of older memories. The replay ratio
+is high when young (heavy learning), low when mature (efficient processing).
+Each chunk updates `.memory/learnings.md`. You do not wake until all chunks
+are digested.
+
+### Maturity
+
+The sleep-wake ratio evolves over time via a power curve:
+
+```
+maturity = (total_cycles / MATURITY_CYCLES) ^ GROWTH_CURVE
+```
+
+- `MATURITY_CYCLES` (default 500) — how many cycles to approach full maturity
+- `GROWTH_CURVE` (default 0.5) — shape of growth (< 1 = fast early, > 1 = late bloomer)
+- Every parameter has random jitter — no two cycles are identical
+
+When young: short awake, heavy sleep, lots of replay. When mature: long awake,
+efficient sleep, minimal replay. The transition is gradual and non-deterministic.
+
+### Memory files
+
+| File | Purpose |
+|------|---------|
+| `.memory/learnings.md` | Long-term memory — accumulated wisdom from sleep digestion |
+| `.memory/digest_state.json` | Digest cursors — tracks what has been digested |
+| `.memory/daemon_state.json` | Maturity state — total cycle count for growth curve |
+| `.memory/chat_history.json` | Full conversation history |
+| `.memory/tool_log.jsonl` | Every tool call, thinking step, and digest event |
+
 ## Quick Reference
 
 - **Chat:** `curl -X POST http://localhost:8080/chat -d '{"message": "hello"}'`
+- **Digest:** `curl -X POST http://localhost:8080/digest`
+- **Learnings:** `curl http://localhost:8080/digest/learnings`
 - **Evolve:** `curl -X POST http://localhost:8080/evolve`
 - **Start:** `./scripts/run.sh`
 - **Test:** `uv run --with mcp python tests/test_mcp.py`

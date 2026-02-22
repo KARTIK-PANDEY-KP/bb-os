@@ -553,7 +553,38 @@ class WrapperRequestHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_json({"messages": [], "error": str(e)})
             return
-        
+
+        if path == "/chat/log":
+            log_path = "/repo/.memory/tool_log.jsonl"
+            try:
+                if os.path.isfile(log_path):
+                    with open(log_path) as f:
+                        lines = f.readlines()
+                    entries = []
+                    for line in lines:
+                        line = line.strip()
+                        if line:
+                            entries.append(json.loads(line))
+                    self._send_json({"entries": entries, "count": len(entries)})
+                else:
+                    self._send_json({"entries": [], "count": 0})
+            except Exception as e:
+                self._send_json({"entries": [], "count": 0, "error": str(e)})
+            return
+
+        if path == "/digest/learnings":
+            learnings_path = "/repo/.memory/learnings.md"
+            try:
+                if os.path.isfile(learnings_path):
+                    with open(learnings_path) as f:
+                        content = f.read()
+                    self._send_json({"learnings": content, "exists": True})
+                else:
+                    self._send_json({"learnings": "", "exists": False})
+            except Exception as e:
+                self._send_json({"learnings": "", "exists": False, "error": str(e)})
+            return
+
         if path == "/":
             self._send_json({
                 "service": "inner-kernel-criu-wrapper",
@@ -571,7 +602,10 @@ class WrapperRequestHandler(BaseHTTPRequestHandler):
                     "POST /criu/checkpoint": "CRIU checkpoint (freeze process)",
                     "POST /criu/restore": "CRIU restore (resume process)",
                     "POST /evolve": "Trigger self-evolve (build + restart)",
+                    "POST /digest": "Trigger sleep digest — process experiences, extract learnings",
                     "GET /chat/history": "Get conversation history",
+                    "GET /chat/log": "Get tool call log (every tool execution with timestamp, args, result)",
+                    "GET /digest/learnings": "Get accumulated learnings from sleep digestion",
                     "GET /criu/status": "CRIU status",
                     "GET /evolve/status": "Evolve status and latest run info",
                     "GET /ping": "Health check",
@@ -664,7 +698,34 @@ class WrapperRequestHandler(BaseHTTPRequestHandler):
                 import traceback
                 self._send_json({"error": str(e), "traceback": traceback.format_exc()}, 500)
             return
-        
+
+        if path == "/digest":
+            provider = None
+            replay_ratio = None
+            try:
+                if body:
+                    req = json.loads(body.decode("utf-8"))
+                    provider = req.get("provider")
+                    replay_ratio = req.get("replay_ratio")
+            except json.JSONDecodeError:
+                pass
+            try:
+                import importlib, sys
+                if 'agent' in sys.modules:
+                    del sys.modules['agent']
+                import agent as _agent_mod
+                handle_digest = _agent_mod.handle_digest
+                loop = asyncio.new_event_loop()
+                result = loop.run_until_complete(
+                    handle_digest(provider=provider, replay_ratio=replay_ratio)
+                )
+                loop.close()
+                self._send_json(result)
+            except Exception as e:
+                import traceback
+                self._send_json({"error": str(e), "traceback": traceback.format_exc()}, 500)
+            return
+
         # Proxy to kernel
         if is_checkpointed:
             self._send_json({
