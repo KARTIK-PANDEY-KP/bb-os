@@ -24,27 +24,36 @@ Implementation sources:
 Uniform draw notation:
 
 $$
-U(a,b) \sim \text{Uniform}[a,b]
+U(a,b) \sim \mathrm{Uniform}[a,b]
 $$
+
+Constant shorthand used in equations:
+- `M_c = MATURITY_CYCLES`
+- `G = GROWTH_CURVE`
+- `J = JITTER`
+- `G_min, G_max = MIN_GUARANTEED, MAX_GUARANTEED`
+- `C_min, C_max = MIN_CAPACITY, MAX_CAPACITY`
+- `D_min, D_max = MIN_COOLDOWN, MAX_COOLDOWN`
+- `R_min, R_max = MIN_REPLAY, MAX_REPLAY`
 
 ## 1) Maturity Function
 
 Normalize life progress:
 
 $$
-t = \min\left(1,\frac{\text{cycles}}{\text{MATURITY\_CYCLES}}\right)
+t = \min\left(1,\frac{cycles}{M_c}\right)
 $$
 
 Power growth:
 
 $$
-\text{base} = t^{\text{GROWTH\_CURVE}}
+b = t^{G}
 $$
 
 Add jitter and clamp:
 
 $$
-m = \operatorname{clamp}\!\left(\text{base} + U(-\text{JITTER},\text{JITTER}),\,0,\,1\right)
+m = \min\!\left(1,\max\!\left(0, b + U(-J,J)\right)\right)
 $$
 
 Default constants:
@@ -55,7 +64,7 @@ Default constants:
 With defaults:
 
 $$
-m \approx \operatorname{clamp}\!\left(\left(\min\left(1,\frac{\text{cycles}}{500}\right)\right)^{0.5}+U(-0.05,0.05),\,0,\,1\right)
+m \approx \min\!\left(1,\max\!\left(0,\left(\min\left(1,\frac{cycles}{500}\right)\right)^{0.5}+U(-0.05,0.05)\right)\right)
 $$
 
 Interpretation:
@@ -67,13 +76,13 @@ Interpretation:
 Center increases with maturity:
 
 $$
-\text{center}_{awake}=\text{MIN\_GUARANTEED}+(\text{MAX\_GUARANTEED}-\text{MIN\_GUARANTEED})\,m
+c_{awake}=G_{min}+(G_{max}-G_{min})m
 $$
 
 Randomized sample:
 
 $$
-\text{minAwake}=\max\left(1,\operatorname{round}\!\left(\text{center}_{awake}\cdot U(0.7,1.3)\right)\right)
+minAwake=\max\left(1,\mathrm{round}\!\left(c_{awake}\,U(0.7,1.3)\right)\right)
 $$
 
 Defaults:
@@ -83,7 +92,7 @@ Defaults:
 Equivalent default center:
 
 $$
-\text{center}_{awake}=1+7m
+c_{awake}=1+7m
 $$
 
 Rule:
@@ -94,17 +103,17 @@ Rule:
 After guaranteed awake window:
 
 $$
-\text{overtime}=\text{awakeCount}-\text{minAwake}
+overtime=awakeCount-minAwake
 $$
 
 Capacity increases with maturity:
 
 $$
-\text{center}_{capacity}=\text{MIN\_CAPACITY}+(\text{MAX\_CAPACITY}-\text{MIN\_CAPACITY})\,m
+c_{cap}=C_{min}+(C_{max}-C_{min})m
 $$
 
 $$
-\text{capacity}=\max\left(0.5,\text{center}_{capacity}\cdot U(0.7,1.3)\right)
+capacity=\max\left(0.5,c_{cap}\,U(0.7,1.3)\right)
 $$
 
 Defaults:
@@ -115,15 +124,16 @@ Defaults:
 Sleep probability per heartbeat:
 
 $$
-p_{sleep}=1-\exp\!\left(-\frac{\text{overtime}}{\text{capacity}}\right)
+p_{sleep}=1-\exp\!\left(-\frac{overtime}{capacity}\right)
 $$
 
 Decision:
 
 $$
-\text{roll}=U(0,1), \quad
-\text{sleep if } \text{roll}<p_{sleep} \text{ else stay awake}
+roll=U(0,1)
 $$
+
+Sleep rule: sleep if `roll < p_sleep`, else stay awake.
 
 Interpretation:
 - At `overtime = 0`, `p_sleep = 0`.
@@ -135,13 +145,13 @@ Interpretation:
 Center:
 
 $$
-\text{center}_{cooldown}=\text{MIN\_COOLDOWN}+(\text{MAX\_COOLDOWN}-\text{MIN\_COOLDOWN})\,m
+c_{cool}=D_{min}+(D_{max}-D_{min})m
 $$
 
 Sample:
 
 $$
-\text{cooldown}_{sec}=\max\left(2,\text{center}_{cooldown}\cdot U(0.6,1.4)\right)
+cooldown_{sec}=\max\left(2,c_{cool}\,U(0.6,1.4)\right)
 $$
 
 Defaults:
@@ -157,13 +167,13 @@ Interpretation:
 Center decreases with maturity:
 
 $$
-\text{center}_{replay}=0.5-0.4m
+c_{replay}=0.5-0.4m
 $$
 
 Sample and clamp:
 
 $$
-\text{replay\_ratio}=\operatorname{clamp}\!\left(\text{center}_{replay}+U(-0.08,0.08),\text{MIN\_REPLAY},\text{MAX\_REPLAY}\right)
+replay\_ratio=\min\!\left(R_{max},\max\!\left(R_{min},c_{replay}+U(-0.08,0.08)\right)\right)
 $$
 
 Defaults:
@@ -208,7 +218,7 @@ $$
 Replay chunk count (always at least 1):
 
 $$
-R=\max\left(1,\left\lceil \max(N,1)\cdot \text{replay\_ratio} \right\rceil\right)
+R=\max\left(1,\left\lceil \max(N,1)\,replay\_ratio \right\rceil\right)
 $$
 
 Total digest workload:
@@ -220,7 +230,7 @@ $$
 Replay sampling from old chunk pool:
 
 $$
-\text{selected}=\operatorname{random\_sample}\!\left(\text{pool},\min(R,|\text{pool}|)\right)
+selected=sample\!\left(pool,\min(R,|pool|)\right)
 $$
 
 Important behavior:
@@ -241,7 +251,7 @@ Each daemon cycle:
 5. Increment cycle count.
 
 $$
-\text{cycles}_{next}=\text{cycles}+1
+cycles_{next}=cycles+1
 $$
 
 This is the full sleep-energy model in BB: maturity controls wake tolerance, sleep pressure speed, heartbeat cadence, and replay fraction.
