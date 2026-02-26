@@ -17,25 +17,35 @@ Implementation sources:
 - `p_sleep`: probability of sleeping on current heartbeat
 - `roll`: uniform random draw in `[0, 1]`
 - `cooldown_sec`: time between two awake heartbeats
-- `replay_ratio` (rho): fraction of digest effort allocated to replay
+- `replay_ratio`: fraction of digest effort allocated to replay
 - `N`: number of new-data chunks in current sleep digest
 - `R`: number of replay chunks
 
-`U(a, b)` means a random sample from uniform distribution `[a, b]`.
+Uniform draw notation:
+
+$$
+U(a,b) \sim \text{Uniform}[a,b]
+$$
 
 ## 1) Maturity Function
 
 Normalize life progress:
 
-`t = min(1, cycles / MATURITY_CYCLES)`
+$$
+t = \min\left(1,\frac{\text{cycles}}{\text{MATURITY\_CYCLES}}\right)
+$$
 
 Power growth:
 
-`base = t ^ GROWTH_CURVE`
+$$
+\text{base} = t^{\text{GROWTH\_CURVE}}
+$$
 
 Add jitter and clamp:
 
-`m = clamp(base + U(-JITTER, JITTER), 0, 1)`
+$$
+m = \operatorname{clamp}\!\left(\text{base} + U(-\text{JITTER},\text{JITTER}),\,0,\,1\right)
+$$
 
 Default constants:
 - `MATURITY_CYCLES = 500`
@@ -44,21 +54,27 @@ Default constants:
 
 With defaults:
 
-`m ~= clamp((min(1, cycles/500))^0.5 + U(-0.05, 0.05), 0, 1)`
+$$
+m \approx \operatorname{clamp}\!\left(\left(\min\left(1,\frac{\text{cycles}}{500}\right)\right)^{0.5}+U(-0.05,0.05),\,0,\,1\right)
+$$
 
 Interpretation:
-- Early cycles change behavior quickly (`^0.5`).
+- Early cycles change behavior quickly (`0.5` power).
 - Later cycles saturate near `m = 1`.
 
 ## 2) Guaranteed Awake Window
 
 Center increases with maturity:
 
-`center_awake = MIN_GUARANTEED + (MAX_GUARANTEED - MIN_GUARANTEED) * m`
+$$
+\text{center}_{awake}=\text{MIN\_GUARANTEED}+(\text{MAX\_GUARANTEED}-\text{MIN\_GUARANTEED})\,m
+$$
 
 Randomized sample:
 
-`minAwake = max(1, round(center_awake * U(0.7, 1.3)))`
+$$
+\text{minAwake}=\max\left(1,\operatorname{round}\!\left(\text{center}_{awake}\cdot U(0.7,1.3)\right)\right)
+$$
 
 Defaults:
 - `MIN_GUARANTEED = 1`
@@ -66,7 +82,9 @@ Defaults:
 
 Equivalent default center:
 
-`center_awake = 1 + 7m`
+$$
+\text{center}_{awake}=1+7m
+$$
 
 Rule:
 - If `awakeCount < minAwake`, sleep is impossible for that beat.
@@ -75,13 +93,19 @@ Rule:
 
 After guaranteed awake window:
 
-`overtime = awakeCount - minAwake`
+$$
+\text{overtime}=\text{awakeCount}-\text{minAwake}
+$$
 
 Capacity increases with maturity:
 
-`center_capacity = MIN_CAPACITY + (MAX_CAPACITY - MIN_CAPACITY) * m`
+$$
+\text{center}_{capacity}=\text{MIN\_CAPACITY}+(\text{MAX\_CAPACITY}-\text{MIN\_CAPACITY})\,m
+$$
 
-`capacity = max(0.5, center_capacity * U(0.7, 1.3))`
+$$
+\text{capacity}=\max\left(0.5,\text{center}_{capacity}\cdot U(0.7,1.3)\right)
+$$
 
 Defaults:
 - `MIN_CAPACITY = 1.0`
@@ -90,13 +114,16 @@ Defaults:
 
 Sleep probability per heartbeat:
 
-`p_sleep = 1 - exp(-overtime / capacity)`
+$$
+p_{sleep}=1-\exp\!\left(-\frac{\text{overtime}}{\text{capacity}}\right)
+$$
 
 Decision:
 
-`roll = U(0, 1)`
-
-`sleep if roll < p_sleep else stay awake`
+$$
+\text{roll}=U(0,1), \quad
+\text{sleep if } \text{roll}<p_{sleep} \text{ else stay awake}
+$$
 
 Interpretation:
 - At `overtime = 0`, `p_sleep = 0`.
@@ -107,11 +134,15 @@ Interpretation:
 
 Center:
 
-`center_cooldown = MIN_COOLDOWN + (MAX_COOLDOWN - MIN_COOLDOWN) * m`
+$$
+\text{center}_{cooldown}=\text{MIN\_COOLDOWN}+(\text{MAX\_COOLDOWN}-\text{MIN\_COOLDOWN})\,m
+$$
 
 Sample:
 
-`cooldown_sec = max(2, center_cooldown * U(0.6, 1.4))`
+$$
+\text{cooldown}_{sec}=\max\left(2,\text{center}_{cooldown}\cdot U(0.6,1.4)\right)
+$$
 
 Defaults:
 - `MIN_COOLDOWN = 5`
@@ -125,11 +156,15 @@ Interpretation:
 
 Center decreases with maturity:
 
-`center_replay = 0.5 - 0.4m`
+$$
+\text{center}_{replay}=0.5-0.4m
+$$
 
 Sample and clamp:
 
-`replay_ratio = clamp(center_replay + U(-0.08, 0.08), MIN_REPLAY, MAX_REPLAY)`
+$$
+\text{replay\_ratio}=\operatorname{clamp}\!\left(\text{center}_{replay}+U(-0.08,0.08),\text{MIN\_REPLAY},\text{MAX\_REPLAY}\right)
+$$
 
 Defaults:
 - `MIN_REPLAY = 0.05`
@@ -147,13 +182,13 @@ State cursors from `.memory/digest_state.json`:
 
 Given full logs `H` and `T`:
 
-`H_new = H[h:]`
+$$
+H_{new}=H[h:], \quad T_{new}=T[t:]
+$$
 
-`T_new = T[t:]`
-
-`H_old = H[:h]`
-
-`T_old = T[:t]`
+$$
+H_{old}=H[:h], \quad T_{old}=T[:t]
+$$
 
 Chunk sizes:
 - `HISTORY_CHUNK_SIZE = 10`
@@ -161,23 +196,32 @@ Chunk sizes:
 
 New chunk count:
 
-`N_H = ceil(len(H_new) / 10)`
+$$
+N_H=\left\lceil \frac{|H_{new}|}{10} \right\rceil, \quad
+N_T=\left\lceil \frac{|T_{new}|}{20} \right\rceil
+$$
 
-`N_T = ceil(len(T_new) / 20)`
-
-`N = N_H + N_T`
+$$
+N=N_H+N_T
+$$
 
 Replay chunk count (always at least 1):
 
-`R = max(1, ceil(max(N, 1) * replay_ratio))`
+$$
+R=\max\left(1,\left\lceil \max(N,1)\cdot \text{replay\_ratio} \right\rceil\right)
+$$
 
 Total digest workload:
 
-`W = N + R`
+$$
+W=N+R
+$$
 
 Replay sampling from old chunk pool:
 
-`selected = random_sample(pool, min(R, len(pool)))`
+$$
+\text{selected}=\operatorname{random\_sample}\!\left(\text{pool},\min(R,|\text{pool}|)\right)
+$$
 
 Important behavior:
 - Learnings are updated incrementally after each chunk.
@@ -190,11 +234,14 @@ Important behavior:
 
 Each daemon cycle:
 
-1. Sample `m`, `minAwake`, `capacity`.
+1. Sample `m`, `minAwake`, and `capacity`.
 2. Run heartbeats until stochastic sleep trigger.
 3. Sample `replay_ratio`.
 4. Run one uninterrupted digest (`N` new chunks + `R` replay chunks).
-5. Increment cycle count:
-   - `cycles_next = cycles + 1`
+5. Increment cycle count.
+
+$$
+\text{cycles}_{next}=\text{cycles}+1
+$$
 
 This is the full sleep-energy model in BB: maturity controls wake tolerance, sleep pressure speed, heartbeat cadence, and replay fraction.
