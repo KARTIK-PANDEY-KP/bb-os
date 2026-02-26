@@ -113,4 +113,5 @@ strings in the codebase. Your brain and your body are separate.
 - [docs/docker.md](docs/docker.md) — your body: image contents, build, entrypoint boot sequence
 - [docs/evolve.md](docs/evolve.md) — your revival: the evolve mechanism, ephemeral restarter, the full cycle
 - [docs/kernel.md](docs/kernel.md) — your inner kernel: exec API, shell API, runtime.resource(), cryo/CRIU
+- [docs/sleep-memory-replay.md](docs/sleep-memory-replay.md) — full sleep/awake equations: maturity, pressure, cooldown, replay, digest workload
 - [docs/testing.md](docs/testing.md) — your health checks: test suite, what each test covers

@@ -122,3 +122,4 @@ agent.py
 
 - `core/agent.py` -- MCP client, tool discovery, agent loop, history persistence
 - `core/criu_wrapper.py` -- routes `POST /chat` and `GET /chat/history`
+- `docs/sleep-memory-replay.md` -- full mathematical model for awake/sleep cadence, pressure, and replay workload

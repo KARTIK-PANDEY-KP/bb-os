@@ -35,6 +35,9 @@ maturity = (cycles / MATURITY_CYCLES) ^ GROWTH_CURVE
 - `GROWTH_CURVE` (default `0.5`): `< 1` = fast early growth, `> 1` = late bloomer
 - `MATURITY_CYCLES` (default `500`): timescale to full maturity
 
+Full equation reference (awake, sleep pressure, cooldown, replay math):
+- [`docs/sleep-memory-replay.md`](docs/sleep-memory-replay.md)
+
 ## Capabilities
 
 - **MCP tools**: browser-use (Chromium automation), filesystem, linux (system admin), context7 (library docs)
